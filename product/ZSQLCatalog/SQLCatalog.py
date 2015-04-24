@@ -1079,18 +1079,26 @@ class Catalog(Folder,
     return self.sql_search_result_keys
 
   def _getCatalogSchema(self, table=None):
+    method_name = self.sql_catalog_schema
+
+    def warning():
+      LOG('SQLCatalog', WARNING, '_getCatalogSchema failed with the method %s' % method_name, error=sys.exc_info())
+
     result_list = []
     try:
-      method_name = self.sql_catalog_schema
       method = getattr(self, method_name)
-      search_result = method(table=table)
-      for c in search_result:
-        result_list.append(c.Field)
-    except ConflictError:
-      raise
-    except:
-      LOG('SQLCatalog', WARNING, '_getCatalogSchema failed with the method %s' % method_name, error=sys.exc_info())
-      pass
+    except AttributeError:
+      warning()
+    else:
+      try:
+        search_result = method(table=table)
+        for c in search_result:
+          result_list.append(c.Field)
+      except (ConflictError, DatabaseError):
+        raise
+      except:
+        warning()
+
     return tuple(result_list)
 
   @transactional_cache_decorator('SQLCatalog.getColumnIds')
@@ -1165,17 +1173,26 @@ class Catalog(Folder,
     Calls the show table method and returns dictionnary of
     Field Ids
     """
-    keys = []
     method_name = self.sql_catalog_tables
+
+    def warning():
+      LOG('SQLCatalog', WARNING, 'getTableIds failed with the method %s' % method_name, error=sys.exc_info())
+
+    keys = []
     try:
-      method = getattr(self,  method_name)
-      search_result = method()
-      for c in search_result:
-        keys.append(c[0])
-    except ConflictError:
-      raise
-    except:
-      pass
+      method = getattr(self, method_name)
+    except AttributeError:
+      warning()
+    else:
+      try:
+        search_result = method()
+        for c in search_result:
+          keys.append(c[0])
+      except (ConflictError, DatabaseError):
+        raise
+      except:
+        warning()
+
     return keys
 
   def getUIDBuffer(self, force_new_buffer=False):
