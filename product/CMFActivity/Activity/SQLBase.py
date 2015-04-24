@@ -27,6 +27,7 @@
 ##############################################################################
 
 import sys
+from Products.ZSQLCatalog.SQLCatalog import database_exception_pass
 import transaction
 from DateTime import DateTime
 from Shared.DC.ZRDB.Results import Results
@@ -207,6 +208,7 @@ class SQLBase(Queue):
                                                        count=1)
     return result[0].uid_count
 
+  @database_exception_pass(default_value=0)
   def hasActivity(self, activity_tool, object, method_id=None, only_valid=None,
                   active_process_uid=None):
     hasMessage = getattr(activity_tool, 'SQLBase_hasMessage', None)

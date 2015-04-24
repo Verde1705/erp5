@@ -26,12 +26,14 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ##############################################################################
+import sys
 
 from AccessControl import ClassSecurityInfo
 from AccessControl.SecurityManagement import getSecurityManager,\
                           setSecurityManager, newSecurityManager
 from MethodObject import Method
 from Products.ERP5Type.Globals import InitializeClass, DTMLFile
+from Shared.DC.ZRDB.DA import DatabaseError
 from zLOG import LOG, PROBLEM
 
 from Products.CMFCore.utils import getToolByName
@@ -141,6 +143,17 @@ class PreferenceTool(BaseTool):
     """ return the most appropriate preferences objects,
         sorted so that the first in the list should be applied first
     """
+
+    def searchFolder(**kw):
+      try:
+        return [x.getObject() for x in  self.searchFolder(**kw)]
+      except DatabaseError:
+        exc_info = sys.exc_info()
+        if str(exc_info[1]).endswith(" is not connected to a database"):
+          return self.objectValues(spec=(kw['portal_type'],))
+        else:
+          raise exc_info[0], exc_info[1], exc_info[2]
+
     tv = getTransactionalVariable()
     security_manager = getSecurityManager()
     user = security_manager.getUser()
@@ -160,8 +173,7 @@ class PreferenceTool(BaseTool):
         # XXX For manager, create a manager specific preference
         #                  or better solution
         user_is_manager = 'Manager' in user.getRolesInContext(self)
-        for pref in self.searchFolder(portal_type='Preference', sql_catalog_id=sql_catalog_id):
-          pref = pref.getObject()
+        for pref in searchFolder(portal_type='Preference', sql_catalog_id=sql_catalog_id):
             # XXX quick workaround so that managers only see user preference
             #     they actually own.
           if pref is not None and (not user_is_manager or
@@ -172,8 +184,8 @@ class PreferenceTool(BaseTool):
                 prefs.append(pref)
         prefs.sort(key=lambda x: x.getPriority(), reverse=True)
         # add system preferences before user preferences
-        sys_prefs = [x.getObject() for x in self.searchFolder(portal_type='System Preference', sql_catalog_id=sql_catalog_id) \
-                     if x.getObject().getProperty('preference_state', 'broken') in ('enabled', 'global')]
+        sys_prefs = [x for x in searchFolder(portal_type='System Preference', sql_catalog_id=sql_catalog_id)
+                     if x.getProperty('preference_state', 'broken') in ('enabled', 'global')]
         sys_prefs.sort(key=lambda x: x.getPriority(), reverse=True)
         preference_list = sys_prefs + prefs
         tv[tv_key] = preference_list

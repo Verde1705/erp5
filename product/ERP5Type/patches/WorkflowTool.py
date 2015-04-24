@@ -27,7 +27,7 @@ from Products.DCWorkflow.DCWorkflow import DCWorkflowDefinition
 from Products.DCWorkflow.Transitions import TRIGGER_WORKFLOW_METHOD
 
 from Products.CMFCore.utils import getToolByName
-from Products.ZSQLCatalog.SQLCatalog import SimpleQuery, AutoQuery, ComplexQuery, NegatedQuery
+from Products.ZSQLCatalog.SQLCatalog import SimpleQuery, AutoQuery, ComplexQuery, NegatedQuery, database_exception_pass
 from Products.CMFCore.utils import _getAuthenticatedUser
 from Products.ERP5Type.Cache import CachingMethod
 from sets import ImmutableSet
@@ -432,6 +432,7 @@ def generateActionList(worklist_metadata, worklist_result, portal_url):
               'category': metadata['action_box_category']})
   return action_list
 
+@database_exception_pass(default_value=[])
 def WorkflowTool_listActions(self, info=None, object=None, src__=False):
   """
     Returns a list of actions to be displayed to the user.

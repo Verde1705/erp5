@@ -26,6 +26,8 @@ from AccessControl.SimpleObjectPolicies import ContainerAssertions
 from BTrees.OIBTree import OIBTree
 from App.config import getConfiguration
 from BTrees.Length import Length
+from Products.ERP5Type.Utils import simple_decorator
+from Shared.DC.ZRDB.DA import DatabaseError
 from Shared.DC.ZRDB.TM import TM
 
 from Acquisition import aq_parent, aq_inner, aq_base
@@ -89,6 +91,21 @@ except ImportError:
   LOG('SQLCatalog', WARNING, 'Count not import getTransactionalVariable, expect slowness.')
   def getTransactionalVariable():
     return {}
+
+def database_exception_pass(default_value=None):
+  @simple_decorator
+  def decorator(function):
+    def wrapped(*args, **kw):
+      try:
+        return function(*args, **kw)
+      except DatabaseError:
+        exc_info = sys.exc_info()
+        if str(exc_info[1]).endswith(" is not connected to a database"):
+          return default_value
+        else:
+          raise exc_info[0], exc_info[1], exc_info[2]
+    return wrapped
+  return decorator
 
 def getInstanceID(instance):
   # XXX: getPhysicalPath is overkill for a unique cache identifier.
