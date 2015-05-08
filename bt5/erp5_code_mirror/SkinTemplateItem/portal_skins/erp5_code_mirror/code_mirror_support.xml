@@ -170,7 +170,7 @@
    if(!textarea.length) {\n
      $(\'#merge\').append(\n
        \'<textarea id="&dtml-field_id;" name="&dtml-field_id;" style="display: none;">\' + \n
-       `&dtml-content;` +\n
+       `<dtml-var expr="content.replace(\'`\', \'\\\\`\')">` +\n
        \'</textarea>\');\n
 \n
      textarea = $(\'#&dtml-field_id;\');\n
